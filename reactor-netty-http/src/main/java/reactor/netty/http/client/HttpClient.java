@@ -1073,10 +1073,9 @@ public abstract class HttpClient extends ClientTransport<HttpClient, HttpClientC
 			Function<? super Mono<? extends Connection>, ? extends Mono<? extends Connection>> connector) {
 		Objects.requireNonNull(connector, "mapConnect");
 		HttpClient dup = duplicate();
-		@SuppressWarnings("unchecked")
-		Function<Mono<? extends Connection>, Mono<? extends Connection>> current =
-				(Function<Mono<? extends Connection>, Mono<? extends Connection>>) configuration().connector;
-		dup.configuration().connector = current == null ? connector : current.andThen(connector);
+		Function<? super Mono<? extends Connection>, ? extends Mono<? extends Connection>> currentConnector =
+				configuration().connector;
+		dup.configuration().connector = currentConnector == null ? connector : currentConnector.andThen(connector);
 		return dup;
 	}
 
@@ -1181,7 +1180,15 @@ public abstract class HttpClient extends ClientTransport<HttpClient, HttpClientC
 
 	@Override
 	public final HttpClient observe(ConnectionObserver observer) {
-		return super.observe(observer);
+		HttpClient dup = super.observe(observer);
+		if (observer instanceof MapConnect) {
+			// This is for integration with Brave instrumentation
+			Function<? super Mono<? extends Connection>, ? extends Mono<? extends Connection>> currentConnector =
+					configuration().connector;
+			MapConnect newConnector = (MapConnect) observer;
+			dup.configuration().connector = currentConnector == null ? newConnector : currentConnector.andThen(newConnector);
+		}
+		return dup;
 	}
 
 	/**

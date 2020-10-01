@@ -1180,15 +1180,7 @@ public abstract class HttpClient extends ClientTransport<HttpClient, HttpClientC
 
 	@Override
 	public final HttpClient observe(ConnectionObserver observer) {
-		HttpClient dup = super.observe(observer);
-		if (observer instanceof MapConnect) {
-			// This is for integration with Brave instrumentation
-			Function<? super Mono<? extends Connection>, ? extends Mono<? extends Connection>> currentConnector =
-					configuration().connector;
-			MapConnect newConnector = (MapConnect) observer;
-			dup.configuration().connector = currentConnector == null ? newConnector : currentConnector.andThen(newConnector);
-		}
-		return dup;
+		return super.observe(observer);
 	}
 
 	/**
